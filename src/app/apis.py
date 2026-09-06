@@ -4,22 +4,17 @@ import subprocess
 import platform
 import re
 
-
 # =========================================================
 # STORED METRICS
 # =========================================================
 
-olddata = {
-    "disk_write": 0,
-    "disk_read": 0,
-    "net_sent": 0,
-    "net_recv": 0
-}
+olddata = {"disk_write": 0, "disk_read": 0, "net_sent": 0, "net_recv": 0}
 
 
 # =========================================================
 # PROCESS MONITORING API
 # =========================================================
+
 
 @app.route("/api/process")
 def api_process():
@@ -27,21 +22,13 @@ def api_process():
     Returns real-time process information.
     """
 
-    apidata = {
-        "processes": []
-    }
+    apidata = {"processes": []}
 
     try:
         for proc in psutil.process_iter():
             try:
                 pinfo = proc.as_dict(
-                    attrs=[
-                        "pid",
-                        "name",
-                        "memory_percent",
-                        "num_threads",
-                        "cpu_times"
-                    ]
+                    attrs=["pid", "name", "memory_percent", "num_threads", "cpu_times"]
                 )
 
             except psutil.NoSuchProcess:
@@ -59,6 +46,7 @@ def api_process():
 # =========================================================
 # SYSTEM MONITORING API
 # =========================================================
+
 
 @app.route("/api/monitor")
 def api_monitor():
@@ -78,7 +66,6 @@ def api_monitor():
     # Disk usage
     apidata["disk"] = psutil.disk_usage("/").percent
 
-
     # -----------------------------------------------------
     # NETWORK I/O
     # -----------------------------------------------------
@@ -87,17 +74,13 @@ def api_monitor():
         netio = psutil.net_io_counters()
 
         apidata["net_sent"] = (
-            0
-            if olddata["net_sent"] == 0
-            else netio.bytes_sent - olddata["net_sent"]
+            0 if olddata["net_sent"] == 0 else netio.bytes_sent - olddata["net_sent"]
         )
 
         olddata["net_sent"] = netio.bytes_sent
 
         apidata["net_recv"] = (
-            0
-            if olddata["net_recv"] == 0
-            else netio.bytes_recv - olddata["net_recv"]
+            0 if olddata["net_recv"] == 0 else netio.bytes_recv - olddata["net_recv"]
         )
 
         olddata["net_recv"] = netio.bytes_recv
@@ -105,7 +88,6 @@ def api_monitor():
     except Exception:
         apidata["net_sent"] = -1
         apidata["net_recv"] = -1
-
 
     # -----------------------------------------------------
     # DISK I/O
@@ -123,9 +105,7 @@ def api_monitor():
         olddata["disk_write"] = diskio.write_bytes
 
         apidata["disk_read"] = (
-            0
-            if olddata["disk_read"] == 0
-            else diskio.read_bytes - olddata["disk_read"]
+            0 if olddata["disk_read"] == 0 else diskio.read_bytes - olddata["disk_read"]
         )
 
         olddata["disk_read"] = diskio.read_bytes
@@ -134,13 +114,13 @@ def api_monitor():
         apidata["disk_write"] = -1
         apidata["disk_read"] = -1
 
-
     return jsonify(apidata)
 
 
 # =========================================================
 # SYSTEM HEALTH API
 # =========================================================
+
 
 @app.route("/api/health")
 def api_health():
@@ -153,13 +133,7 @@ def api_health():
     memory = psutil.virtual_memory().percent
     disk = psutil.disk_usage("/").percent
 
-
-    values = {
-        "cpu": cpu,
-        "memory": memory,
-        "disk": disk
-    }
-
+    values = {"cpu": cpu, "memory": memory, "disk": disk}
 
     # Determine worst condition
     if any(value >= 90 for value in values.values()):
@@ -174,18 +148,13 @@ def api_health():
 
         status = "healthy"
 
-
-    return jsonify({
-        "status": status,
-        "cpu": cpu,
-        "memory": memory,
-        "disk": disk
-    })
+    return jsonify({"status": status, "cpu": cpu, "memory": memory, "disk": disk})
 
 
 # =========================================================
 # NETWORK HEALTH MONITORING API
 # =========================================================
+
 
 @app.route("/api/network")
 def api_network():
@@ -197,11 +166,10 @@ def api_network():
     targets = {
         "Google DNS": "8.8.8.8",
         "Cloudflare DNS": "1.1.1.1",
-        "Localhost": "127.0.0.1"
+        "Localhost": "127.0.0.1",
     }
 
     results = []
-
 
     for name, target in targets.items():
 
@@ -209,87 +177,61 @@ def api_network():
 
             if platform.system().lower() == "windows":
 
-                command = [
-                    "ping",
-                    "-n",
-                    "1",
-                    "-w",
-                    "2000",
-                    target
-                ]
+                command = ["ping", "-n", "1", "-w", "2000", target]
 
             else:
 
-                command = [
-                    "ping",
-                    "-c",
-                    "1",
-                    "-W",
-                    "2",
-                    target
-                ]
+                command = ["ping", "-c", "1", "-W", "2", target]
 
-
-            result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                timeout=3
-            )
-
+            result = subprocess.run(command, capture_output=True, text=True, timeout=3)
 
             if result.returncode == 0:
 
                 output = result.stdout
 
-                match = re.search(
-                    r"time[=<]\s*(\d+(?:\.\d+)?)\s*ms",
-                    output
+                match = re.search(r"time[=<]\s*(\d+(?:\.\d+)?)\s*ms", output)
+
+                latency = float(match.group(1)) if match else None
+
+                results.append(
+                    {
+                        "name": name,
+                        "target": target,
+                        "status": "online",
+                        "latency_ms": latency,
+                    }
                 )
-
-                latency = (
-                    float(match.group(1))
-                    if match
-                    else None
-                )
-
-
-                results.append({
-                    "name": name,
-                    "target": target,
-                    "status": "online",
-                    "latency_ms": latency
-                })
 
             else:
 
-                results.append({
-                    "name": name,
-                    "target": target,
-                    "status": "offline",
-                    "latency_ms": None
-                })
-
+                results.append(
+                    {
+                        "name": name,
+                        "target": target,
+                        "status": "offline",
+                        "latency_ms": None,
+                    }
+                )
 
         except Exception as error:
 
-            results.append({
-                "name": name,
-                "target": target,
-                "status": "error",
-                "latency_ms": None,
-                "message": str(error)
-            })
+            results.append(
+                {
+                    "name": name,
+                    "target": target,
+                    "status": "error",
+                    "latency_ms": None,
+                    "message": str(error),
+                }
+            )
 
-
-    return jsonify({
-        "targets": results
-    })
+    return jsonify({"targets": results})
 
 
 # =========================================================
 # SERVICE MONITORING API
 # =========================================================
+
 
 @app.route("/api/services")
 def api_services():
@@ -303,37 +245,26 @@ def api_services():
 
     services = []
 
-
     # -----------------------------------------------------
     # WINDOWS SERVICES
     # -----------------------------------------------------
 
     if system == "windows":
 
-        service_names = [
-            "Spooler",
-            "W32Time"
-        ]
-
+        service_names = ["Spooler", "W32Time"]
 
         for service_name in service_names:
 
             try:
 
                 result = subprocess.run(
-                    [
-                        "sc",
-                        "query",
-                        service_name
-                    ],
+                    ["sc", "query", service_name],
                     capture_output=True,
                     text=True,
-                    timeout=5
+                    timeout=5,
                 )
 
-
                 output = result.stdout.upper()
-
 
                 if "RUNNING" in output:
 
@@ -347,21 +278,13 @@ def api_services():
 
                     status = "unknown"
 
-
-                services.append({
-                    "name": service_name,
-                    "status": status
-                })
-
+                services.append({"name": service_name, "status": status})
 
             except Exception as error:
 
-                services.append({
-                    "name": service_name,
-                    "status": "error",
-                    "message": str(error)
-                })
-
+                services.append(
+                    {"name": service_name, "status": "error", "message": str(error)}
+                )
 
     # -----------------------------------------------------
     # LINUX SERVICES
@@ -369,31 +292,20 @@ def api_services():
 
     else:
 
-        service_names = [
-            "ssh",
-            "docker",
-            "nginx"
-        ]
-
+        service_names = ["ssh", "docker", "nginx"]
 
         for service_name in service_names:
 
             try:
 
                 result = subprocess.run(
-                    [
-                        "systemctl",
-                        "is-active",
-                        service_name
-                    ],
+                    ["systemctl", "is-active", service_name],
                     capture_output=True,
                     text=True,
-                    timeout=5
+                    timeout=5,
                 )
 
-
                 status = result.stdout.strip()
-
 
                 if status == "active":
 
@@ -405,29 +317,14 @@ def api_services():
 
                 else:
 
-                    service_status = (
-                        status
-                        if status
-                        else "unknown"
-                    )
+                    service_status = status if status else "unknown"
 
-
-                services.append({
-                    "name": service_name,
-                    "status": service_status
-                })
-
+                services.append({"name": service_name, "status": service_status})
 
             except Exception as error:
 
-                services.append({
-                    "name": service_name,
-                    "status": "error",
-                    "message": str(error)
-                })
+                services.append(
+                    {"name": service_name, "status": "error", "message": str(error)}
+                )
 
-
-    return jsonify({
-        "platform": platform.system(),
-        "services": services
-    })
+    return jsonify({"platform": platform.system(), "services": services})
