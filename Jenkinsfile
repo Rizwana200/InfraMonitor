@@ -53,6 +53,17 @@ pipeline {
                     '''
                 }
             }
+stage('Deploy to Kubernetes') {
+    steps {
+        sh '''
+            kubectl set image deployment/python-demoapp \
+            python-demoapp=arizwana/inframonitor:jenkins
+
+            kubectl rollout status deployment/python-demoapp
+        '''
+    }
+}
+
         }
     }
 }
