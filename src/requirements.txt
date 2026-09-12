@@ -11,3 +11,5 @@ black>=23.0
 py-cpuinfo
 
 psutil
+
+prometheus-client>=0.26.0
