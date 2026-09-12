@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: python-demoapp
-          image: ghcr.io/rizwana200/python-devops-project:latest
+          image: arizwana/inframonitor:jenkins
           imagePullPolicy: Always
           ports:
             - containerPort: 5000

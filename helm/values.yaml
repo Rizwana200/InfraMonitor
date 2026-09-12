@@ -1,0 +1,12 @@
+replicaCount: 1
+
+image:
+  repository: arizwana/inframonitor
+  tag: jenkins
+  pullPolicy: Always
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 5000
+
