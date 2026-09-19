@@ -58,10 +58,11 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                    kubectl set image deployment/python-demoapp \
-                    python-demoapp=arizwana/inframonitor:jenkins
+                    helm upgrade --install inframonitor ./helm \
+                    --set image.repository=arizwana/inframonitor \
+                    --set image.tag=jenkins
 
-                    kubectl rollout status deployment/python-demoapp
+                    kubectl rollout status deployment/inframonitor
                 '''
             }
         }
