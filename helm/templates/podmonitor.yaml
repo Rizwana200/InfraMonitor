@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  podMetricsEndpoints:
+    - targetPort: 5000
+      path: /metrics
+      interval: 15s
