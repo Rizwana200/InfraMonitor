@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_TAG = "${GIT_COMMIT}"
+    }
+
     stages {
 
         stage('Checkout') {
@@ -32,7 +36,7 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh '''
-                    docker build -t arizwana/inframonitor:jenkins .
+                    docker build -t arizwana/inframonitor:${IMAGE_TAG} .
                 '''
             }
         }
@@ -48,7 +52,7 @@ pipeline {
                 ]) {
                     sh '''
                         echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push arizwana/inframonitor:jenkins
+                        docker push arizwana/inframonitor:${IMAGE_TAG}
                         docker logout
                     '''
                 }
@@ -60,7 +64,7 @@ pipeline {
                 sh '''
                     helm upgrade --install inframonitor ./helm \
                     --set image.repository=arizwana/inframonitor \
-                    --set image.tag=jenkins
+                    --set image.tag=${IMAGE_TAG}
 
                     kubectl rollout status deployment/inframonitor
                 '''
