@@ -1,13 +1,11 @@
 pipeline {
     agent any
-
     environment {
         IMAGE_NAME = "arizwana/inframonitor"
         IMAGE_TAG = "${GIT_COMMIT}"
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
@@ -62,18 +60,25 @@ pipeline {
 
         stage('Update Helm Image') {
             steps {
-                sh '''
-                    sed -i "s/^  tag: .*/  tag: ${IMAGE_TAG}/" helm/values.yaml
+                withCredentials([
+                    gitUsernamePassword(
+                        credentialsId: 'github-credentials',
+                        gitToolName: 'Default'
+                    )
+                ]) {
+                    sh '''
+                        sed -i "s/^  tag: .*/  tag: ${IMAGE_TAG}/" helm/values.yaml
 
-                    git config user.name "Jenkins"
-                    git config user.email "jenkins@localhost"
+                        git config user.name "Jenkins"
+                        git config user.email "jenkins@localhost"
 
-                    git add helm/values.yaml
-                    git commit -m "Update InfraMonitor image to ${IMAGE_TAG}" || true
-                    git push origin HEAD:main
-                '''
+                        git add helm/values.yaml
+                        git commit -m "Update InfraMonitor image to ${IMAGE_TAG} [skip ci]" || true
+
+                        git push origin HEAD:main
+                    '''
+                }
             }
         }
     }
 }
-
