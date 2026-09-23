@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     environment {
+        IMAGE_NAME = "arizwana/inframonitor"
         IMAGE_TAG = "${GIT_COMMIT}"
     }
 
@@ -36,7 +37,7 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh '''
-                    docker build -t arizwana/inframonitor:${IMAGE_TAG} .
+                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 '''
             }
         }
@@ -52,23 +53,27 @@ pipeline {
                 ]) {
                     sh '''
                         echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push arizwana/inframonitor:${IMAGE_TAG}
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
                         docker logout
                     '''
                 }
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Update Helm Image') {
             steps {
                 sh '''
-                    helm upgrade --install inframonitor ./helm \
-                    --set image.repository=arizwana/inframonitor \
-                    --set image.tag=${IMAGE_TAG}
+                    sed -i "s/^  tag: .*/  tag: ${IMAGE_TAG}/" helm/values.yaml
 
-                    kubectl rollout status deployment/inframonitor
+                    git config user.name "Jenkins"
+                    git config user.email "jenkins@localhost"
+
+                    git add helm/values.yaml
+                    git commit -m "Update InfraMonitor image to ${IMAGE_TAG}" || true
+                    git push origin HEAD:main
                 '''
             }
         }
     }
 }
+
