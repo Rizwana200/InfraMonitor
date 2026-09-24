@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: arizwana/inframonitor
-  tag: jenkins
+  tag: 1f633f529bc6b0fd88b75c34ecefd877a9d4c5a9
   pullPolicy: Always
 
 service:
